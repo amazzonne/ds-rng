@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Demon Slayer RNG</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b0f14">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; background: #0b0f14; color: #e8eef6; }
+    header { padding: 16px 20px; border-bottom: 1px solid #1c2a3a; background: #0d131b; position: sticky; top: 0; }
+    h1 { margin: 0; font-size: 18px; }
+    main { padding: 18px 20px; display: grid; gap: 14px; grid-template-columns: 360px 1fr; }
+    @media (max-width: 900px){ main{ grid-template-columns: 1fr; } }
+    .card { background: #0d131b; border: 1px solid #1c2a3a; border-radius: 14px; padding: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    label { font-size: 12px; color: #b7c7da; }
+    input[type="number"], textarea {
+      background: #0b0f14; color: #e8eef6; border: 1px solid #1c2a3a;
+      border-radius: 10px; padding: 10px; outline: none; width: 100%;
+    }
+    input[type="range"] { width: 100%; }
+    button {
+      background: #1b6ef3; color: white; border: 0; border-radius: 12px; padding: 10px 12px;
+      font-weight: 700; cursor: pointer;
+    }
+    button.secondary { background: #233447; }
+    .grid2 { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+    .small { font-size: 12px; color: #b7c7da; }
+    .pill { display:inline-block; padding: 3px 8px; border-radius: 999px; border: 1px solid #1c2a3a; background:#0b0f14; font-size: 12px; }
+    .out { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+           background:#0b0f14; border:1px solid #1c2a3a; padding: 12px; border-radius: 12px; max-height: 70vh; overflow:auto;}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Demon Slayer RNG (Offline)</h1>
+</header>
+
+<main>
+  <section class="card">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <div class="pill">1–100 lore scale</div>
+        <div class="small">Bias + variance + demon chance</div>
+      </div>
+      <button class="secondary" id="saveBtn">Save</button>
+    </div>
+
+    <hr style="border:0;border-top:1px solid #1c2a3a;margin:12px 0;"/>
+
+    <div class="grid2">
+      <div>
+        <label>How many to generate</label>
+        <input type="number" id="count" min="1" max="200" value="3">
+      </div>
+      <div>
+        <label>Demon chance (%)</label>
+        <input type="number" id="demonChance" min="0" max="100" value="50">
+      </div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <label>RNG Bias (weak ⇄ OP)</label>
+      <input type="range" id="bias" min="-100" max="100" value="0">
+      <div class="small" id="biasLabel">Bias: 0</div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <label>Variance (tight ⇄ wild)</label>
+      <input type="range" id="variance" min="0" max="30" value="10">
+      <div class="small" id="varLabel">Variance: ±10</div>
+    </div>
+
+    <div class="grid2" style="margin-top:10px;">
+      <div>
+        <label>Overall min</label>
+        <input type="number" id="minOverall" min="0" max="200" value="15">
+      </div>
+      <div>
+        <label>Overall max</label>
+        <input type="number" id="maxOverall" min="0" max="200" value="100">
+      </div>
+    </div>
+
+    <hr style="border:0;border-top:1px solid #1c2a3a;margin:12px 0;"/>
+
+    <div class="row">
+      <button id="genBtn">Generate</button>
+      <button class="secondary" id="copyBtn">Copy JSON</button>
+    </div>
+
+    <div class="small" style="margin-top:10px;">
+      Install: open in Safari → Share → Add to Home Screen. After first load, it works offline.
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <div class="pill">Output</div>
+        <div class="small">Includes Combat Rating + Overall</div>
+      </div>
+    </div>
+    <div class="out" id="output"></div>
+  </section>
+</main>
+
+<script>
+/** ===== DATA (edit anytime) ===== */
+const TEMPLATES = [
+  { id:"yoriichi_prime", name:"Yoriichi (Prime)", typeHint:"Slayer", overall:150, stats:{pwr:120, spd:120, dur:100, skl:130, mind:130, flex:110} },
+
+  { id:"muzan_prime", name:"Muzan (Prime)", typeHint:"Demon", overall:92, stats:{pwr:92, spd:88, dur:100, skl:85, mind:80, flex:75} },
+  { id:"koku_um1", name:"Kokushibo (UM1)", typeHint:"Demon", overall:88, stats:{pwr:88, spd:90, dur:92, skl:95, mind:85, flex:85} },
+  { id:"doma_um2", name:"Doma (UM2)", typeHint:"Demon", overall:75, stats:{pwr:78, spd:72, dur:90, skl:80, mind:60, flex:68} },
+  { id:"akaza_um3", name:"Akaza (UM3)", typeHint:"Demon", overall:70, stats:{pwr:75, spd:78, dur:85, skl:82, mind:70, flex:75} },
+  { id:"hantengu_um4", name:"Hantengu (Full) (UM4)", typeHint:"Demon", overall:52, stats:{pwr:55, spd:45, dur:65, skl:42, mind:35, flex:38} },
+  { id:"gyokko_um5", name:"Gyokko (UM5)", typeHint:"Demon", overall:45, stats:{pwr:45, spd:40, dur:50, skl:35, mind:28, flex:35} },
+  { id:"gyutaro_um6", name:"Gyutaro (UM6)", typeHint:"Demon", overall:42, stats:{pwr:48, spd:50, dur:60, skl:45, mind:40, flex:42} },
+  { id:"daki_um6", name:"Daki (UM6)", typeHint:"Demon", overall:30, stats:{pwr:30, spd:32, dur:45, skl:30, mind:25, flex:28} },
+
+  { id:"enmu_lm1", name:"Enmu (LM1)", typeHint:"Demon", overall:20, stats:{pwr:20, spd:18, dur:35, skl:24, mind:22, flex:20} },
+  { id:"rui_lm", name:"Rui (Lower Moon)", typeHint:"Demon", overall:18, stats:{pwr:18, spd:20, dur:30, skl:18, mind:15, flex:14} },
+
+  { id:"gyomei_base", name:"Gyomei (Hashira Base)", typeHint:"Slayer", overall:65, stats:{pwr:85, spd:65, dur:90, skl:92, mind:95, flex:60} },
+  { id:"sanemi_base", name:"Sanemi (Hashira Base)", typeHint:"Slayer", overall:58, stats:{pwr:75, spd:80, dur:70, skl:88, mind:85, flex:75} },
+  { id:"giyu_base", name:"Giyu (Hashira Base)", typeHint:"Slayer", overall:57, stats:{pwr:72, spd:78, dur:68, skl:90, mind:80, flex:70} },
+  { id:"muichiro_base", name:"Muichiro (Hashira Base)", typeHint:"Slayer", overall:55, stats:{pwr:55, spd:85, dur:50, skl:90, mind:70, flex:80} },
+  { id:"obanai_base", name:"Obanai (Hashira Base)", typeHint:"Slayer", overall:53, stats:{pwr:60, spd:72, dur:55, skl:82, mind:75, flex:88} },
+  { id:"mitsuri_base", name:"Mitsuri (Hashira Base)", typeHint:"Slayer", overall:52, stats:{pwr:70, spd:75, dur:60, skl:65, mind:70, flex:85} },
+  { id:"rengoku_base", name:"Rengoku (Hashira Base)", typeHint:"Slayer", overall:50, stats:{pwr:65, spd:70, dur:65, skl:78, mind:85, flex:60} },
+  { id:"tengen_base", name:"Tengen (Hashira Base)", typeHint:"Slayer", overall:48, stats:{pwr:60, spd:75, dur:60, skl:70, mind:65, flex:72} },
+  { id:"shinobu_base", name:"Shinobu (Hashira Base)", typeHint:"Slayer", overall:40, stats:{pwr:35, spd:65, dur:30, skl:75, mind:80, flex:60} },
+
+  { id:"tanjiro_final_peak", name:"Tanjiro (Final Arc Peak)", typeHint:"Slayer", overall:90, stats:{pwr:90, spd:92, dur:85, skl:95, mind:98, flex:88} },
+  { id:"tanjiro_red_blade", name:"Tanjiro (Red Blade)", typeHint:"Slayer", overall:64, stats:{pwr:88, spd:88, dur:80, skl:92, mind:97, flex:85} },
+  { id:"tanjiro_stw", name:"Tanjiro (STW)", typeHint:"Slayer", overall:62, stats:{pwr:82, spd:85, dur:75, skl:90, mind:95, flex:80} },
+  { id:"tanjiro_marked", name:"Tanjiro (Marked)", typeHint:"Slayer", overall:62, stats:{pwr:75, spd:80, dur:70, skl:80, mind:85, flex:75} },
+  { id:"tanjiro_swordsmith", name:"Tanjiro (Swordsmith Village)", typeHint:"Slayer", overall:50, stats:{pwr:60, spd:65, dur:60, skl:65, mind:70, flex:65} },
+  { id:"tanjiro_ent", name:"Tanjiro (Entertainment District)", typeHint:"Slayer", overall:40, stats:{pwr:45, spd:50, dur:45, skl:50, mind:60, flex:55} },
+  { id:"tanjiro_train", name:"Tanjiro (Mugen Train)", typeHint:"Slayer", overall:32, stats:{pwr:35, spd:38, dur:35, skl:35, mind:50, flex:40} },
+  { id:"tanjiro_rui_arc", name:"Tanjiro (Rui Arc)", typeHint:"Slayer", overall:25, stats:{pwr:28, spd:30, dur:25, skl:25, mind:40, flex:30} },
+  { id:"tanjiro_final_sel", name:"Tanjiro (Final Selection)", typeHint:"Slayer", overall:18, stats:{pwr:20, spd:22, dur:20, skl:18, mind:30, flex:25} },
+
+  { id:"zenitsu_godspeed", name:"Zenitsu (Godspeed Peak)", typeHint:"Slayer", overall:68, stats:{pwr:55, spd:92, dur:50, skl:70, mind:60, flex:70} },
+  { id:"inosuke_final", name:"Inosuke (Final Arc)", typeHint:"Slayer", overall:52, stats:{pwr:60, spd:70, dur:65, skl:65, mind:55, flex:78} },
+  { id:"kanao_final", name:"Kanao (Final Arc)", typeHint:"Slayer", overall:58, stats:{pwr:58, spd:72, dur:55, skl:85, mind:80, flex:75} },
+  { id:"genya_final", name:"Genya (Final Arc)", typeHint:"Slayer", overall:50, stats:{pwr:55, spd:45, dur:75, skl:55, mind:55, flex:50} },
+
+  { id:"nezuko_awakened", name:"Nezuko (Awakened Sun Form)", typeHint:"Demon", overall:65, stats:{pwr:70, spd:75, dur:95, skl:50, mind:45, flex:70} },
+  { id:"nezuko_ent", name:"Nezuko (Entertainment District)", typeHint:"Demon", overall:55, stats:{pwr:55, spd:60, dur:85, skl:40, mind:35, flex:60} },
+  { id:"nezuko_early", name:"Nezuko (Early)", typeHint:"Demon", overall:25, stats:{pwr:25, spd:28, dur:50, skl:15, mind:20, flex:30} },
+];
+
+/** ===== Combat Rating ===== */
+function combatRating(stats, alignment){
+  if (alignment === "Slayer") {
+    return Math.round(
+      0.22*stats.pwr + 0.20*stats.spd + 0.18*stats.dur + 0.22*stats.skl + 0.13*stats.mind + 0.05*stats.flex
+    );
+  }
+  return Math.round(
+    0.24*stats.pwr + 0.20*stats.spd + 0.26*stats.dur + 0.15*stats.skl + 0.10*stats.mind + 0.05*stats.flex
+  );
+}
+
+/** ===== RNG ===== */
+function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
+function randNormal(){
+  let u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function weightedPick(items, weights){
+  const total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random()*total;
+  for(let i=0;i<items.length;i++){ r -= weights[i]; if(r<=0) return items[i]; }
+  return items[items.length-1];
+}
+function biasWeight(overall, bias){
+  const exp = 0.2 + (Math.abs(bias)/100) * 2.8;
+  const x = clamp(overall, 1, 200) / 100;
+  return (bias >= 0) ? Math.pow(x, exp) : Math.pow(1/x, exp);
+}
+function rollStats(base, variance, bias){
+  const tilt = Math.round((bias/100) * 6);
+  const out = {};
+  for (const k of Object.keys(base)){
+    const noise = Math.round(randNormal() * variance);
+    out[k] = clamp(base[k] + noise + tilt, 1, 150);
+  }
+  return out;
+}
+
+/** ===== UI ===== */
+const KEY = "ds_rng_settings_v1";
+const outEl = document.getElementById("output");
+const biasEl = document.getElementById("bias");
+const varEl = document.getElementById("variance");
+const biasLabel = document.getElementById("biasLabel");
+const varLabel = document.getElementById("varLabel");
+
+function saveSettings(){
+  const s = {
+    count: document.getElementById("count").value,
+    demonChance: document.getElementById("demonChance").value,
+    bias: biasEl.value,
+    variance: varEl.value,
+    minOverall: document.getElementById("minOverall").value,
+    maxOverall: document.getElementById("maxOverall").value,
+  };
+  localStorage.setItem(KEY, JSON.stringify(s));
+}
+function loadSettings(){
+  try{ return JSON.parse(localStorage.getItem(KEY) || "null"); }catch{ return null; }
+}
+(function init(){
+  const s = loadSettings();
+  if(s){
+    document.getElementById("count").value = s.count ?? 3;
+    document.getElementById("demonChance").value = s.demonChance ?? 50;
+    biasEl.value = s.bias ?? 0;
+    varEl.value = s.variance ?? 10;
+    document.getElementById("minOverall").value = s.minOverall ?? 15;
+    document.getElementById("maxOverall").value = s.maxOverall ?? 100;
+  }
+  biasLabel.textContent = `Bias: ${biasEl.value}`;
+  varLabel.textContent = `Variance: ±${varEl.value}`;
+  outEl.textContent = "Tap Generate.";
+})();
+
+biasEl.addEventListener("input", ()=> biasLabel.textContent = `Bias: ${biasEl.value}`);
+varEl.addEventListener("input", ()=> varLabel.textContent = `Variance: ±${varEl.value}`);
+
+function rollAlignment(template){
+  if(template.typeHint === "Demon" || template.typeHint === "Slayer") return template.typeHint;
+  const chance = Number(document.getElementById("demonChance").value);
+  return (Math.random()*100 < chance) ? "Demon" : "Slayer";
+}
+function cryptoId(){
+  const arr = new Uint32Array(2);
+  (crypto?.getRandomValues ?? ((a)=>{ for(let i=0;i<a.length;i++) a[i]=Math.floor(Math.random()*2**32); return a; }))(arr);
+  return [...arr].map(n=>n.toString(16)).join("-");
+}
+function generate(){
+  const count = clamp(Number(document.getElementById("count").value), 1, 200);
+  const bias = Number(biasEl.value);
+  const variance = Number(varEl.value);
+  const minO = Number(document.getElementById("minOverall").value);
+  const maxO = Number(document.getElementById("maxOverall").value);
+
+  const pool = TEMPLATES.filter(t => t.overall >= minO && t.overall <= maxO);
+  if(!pool.length){ outEl.textContent = "No templates in that Overall range."; return; }
+
+  const weights = pool.map(t => biasWeight(t.overall, bias));
+  const chars = [];
+
+  for(let i=0;i<count;i++){
+    const template = weightedPick(pool, weights);
+    const alignment = rollAlignment(template);
+    const rolled = rollStats(template.stats, variance, bias);
+    const cr = combatRating(rolled, alignment);
+
+    chars.push({
+      id: cryptoId(),
+      alignment,
+      template: template.name,
+      overall: template.overall,
+      stats: { PWR: rolled.pwr, SPD: rolled.spd, "DUR/REG": rolled.dur, SKL: rolled.skl, MIND: rolled.mind, FLEX: rolled.flex },
+      combatRating: cr
+    });
+  }
+
+  outEl.textContent = JSON.stringify(chars, null, 2);
+}
+
+document.getElementById("genBtn").addEventListener("click", generate);
+document.getElementById("saveBtn").addEventListener("click", ()=>{ saveSettings(); alert("Saved."); });
+document.getElementById("copyBtn").addEventListener("click", async ()=>{
+  try{ await navigator.clipboard.writeText(outEl.textContent || ""); alert("Copied JSON."); }
+  catch{ alert("Copy blocked—select text manually and copy."); }
+});
+
+/** ===== Register service worker (offline) ===== */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js"));
+}
+</script>
+</body>
+</html>
