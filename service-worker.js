@@ -1,4 +1,4 @@
-const CACHE_NAME = "ds-rng-v1";
+const CACHE_NAME = "ds-rng-v2";
 const ASSETS = [
   "./",
   "./index.html",
