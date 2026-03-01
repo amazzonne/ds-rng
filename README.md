@@ -1,2 +1,2 @@
 # ds-rng
-Demon Slayer Character Creation RNG 
+Demon Slayer Character Creation Generator 
