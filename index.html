@@ -69,7 +69,7 @@
     <div class="grid2">
       <div>
         <label>How many characters</label>
-        <input type="number" id="count" min="1" max="200" value="3">
+        <input type="number" id="count" min="1" max="200" value="1">
       </div>
       <div>
         <label>Demon chance (%)</label>
@@ -92,11 +92,11 @@
     <div class="grid2" style="margin-top:10px;">
       <div>
         <label>Overall min (pool filter)</label>
-        <input type="number" id="minOverall" min="0" max="200" value="15">
+        <input type="number" id="minOverall" min="0" max="200" value="0">
       </div>
       <div>
         <label>Overall max (pool filter)</label>
-        <input type="number" id="maxOverall" min="0" max="200" value="100">
+        <input type="number" id="maxOverall" min="0" max="200" value="200">
       </div>
     </div>
 
@@ -340,12 +340,12 @@ function resetSettings(){
 function applySettings(){
   const s = loadSettings();
   if(!s) return;
-  document.getElementById("count").value = s.count ?? 3;
+  document.getElementById("count").value = s.count ?? 1;
   document.getElementById("demonChance").value = s.demonChance ?? 50;
   biasEl.value = s.bias ?? 0;
   varEl.value = s.variance ?? 6;
-  document.getElementById("minOverall").value = s.minOverall ?? 15;
-  document.getElementById("maxOverall").value = s.maxOverall ?? 100;
+  document.getElementById("minOverall").value = s.minOverall ?? 0;
+  document.getElementById("maxOverall").value = s.maxOverall ?? 200;
 }
 
 function updateLabels(){
