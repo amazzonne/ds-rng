@@ -390,7 +390,25 @@ function generate(){
     });
   }
 
-  outEl.textContent = JSON.stringify(results, null, 2);
+  // Pretty view
+const pretty = results.map((c, idx) => {
+  const s = c.stats;
+  return [
+    `#${idx+1}  ${c.alignment}   (Combat Rating: ${c.combatRating})`,
+    `PWR: ${s.PWR.value} — ${s.PWR.source}`,
+    `SPD: ${s.SPD.value} — ${s.SPD.source}`,
+    `DUR/REG: ${s["DUR/REG"].value} — ${s["DUR/REG"].source}`,
+    `SKL: ${s.SKL.value} — ${s.SKL.source}`,
+    `MIND: ${s.MIND.value} — ${s.MIND.source}`,
+    `FLEX: ${s.FLEX.value} — ${s.FLEX.source}`,
+    ``
+  ].join("\n");
+}).join("\n");
+
+document.getElementById("prettyOutput").textContent = pretty;
+
+// Raw JSON
+outEl.textContent = JSON.stringify(results, null, 2);
 }
 
 /* =========================
