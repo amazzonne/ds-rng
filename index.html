@@ -121,8 +121,6 @@
       </div>
     </div>
     <div class="out" id="prettyOutput">Click Generate.</div>
-<div class="small" style="margin-top:10px;">Raw JSON</div>
-<div class="out" id="output"></div>
   </section>
 </main>
 
@@ -298,7 +296,6 @@ function generateMixedStats(pool, bias, variance){
    UI / Persistence
    ========================= */
 const KEY = "ds_rng_settings_statmix_v1";
-const outEl = document.getElementById("output");
 const biasEl = document.getElementById("bias");
 const varEl = document.getElementById("variance");
 const biasLabel = document.getElementById("biasLabel");
@@ -409,7 +406,6 @@ const pretty = results.map((c, idx) => {
 document.getElementById("prettyOutput").textContent = pretty;
 
 // Raw JSON
-outEl.textContent = JSON.stringify(results, null, 2);
 }
 
 /* =========================
