@@ -245,9 +245,16 @@ function rollAlignment(template){
   return (Math.random()*100 < chance) ? "Demon" : "Slayer";
 }
 function cryptoId(){
-  const arr = new Uint32Array(2);
-  (crypto?.getRandomValues ?? ((a)=>{ for(let i=0;i<a.length;i++) a[i]=Math.floor(Math.random()*2**32); return a; }))(arr);
-  return [...arr].map(n=>n.toString(16)).join("-");
+  // Use WebCrypto if available; otherwise fallback to Math.random
+  try {
+    if (window.crypto && window.crypto.getRandomValues) {
+      const arr = new Uint32Array(2);
+      window.crypto.getRandomValues(arr);
+      return [...arr].map(n => n.toString(16)).join("-");
+    }
+  } catch (e) {}
+  // Fallback
+  return Math.random().toString(16).slice(2) + "-" + Math.random().toString(16).slice(2);
 }
 function generate(){
   const count = clamp(Number(document.getElementById("count").value), 1, 200);
